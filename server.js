@@ -7,21 +7,21 @@ const path = require('path');
 const PORT = process.env.PORT || 8081
 
 app.get('/',(req,res)=>{
-    res.status(200).send('Hello from the API')
+    res.status(200).json('Hello from the API')
 })
 app.get('/myles',(req,res)=>{
-    res.status(200).send('')
+    res.status(200).json('')
 })
 app.get('/robert',(req,res)=>{
-    res.status(200).send('Robert endpoint')
+    res.status(200).json('Robert endpoint')
 })
 app.get('/user',(req,res)=>{
     let username = Date.now()
-    res.status(200).send('your user is '+username)
+    res.status(200).json('your user is '+username)
 })
 app.get('/data',(req,res)=>{
     let randomData = Math.random() * Date.now();
-    res.status(200).send('this is important user data ' + randomData);
+    res.status(200).json('this is important user data ' + randomData);
 })
 
 

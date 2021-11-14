@@ -13,7 +13,7 @@ app.get('/myles',(req,res)=>{
     res.status(200).json('')
 })
 app.get('/robert',(req,res)=>{
-    res.status(200).json('Robert endpoint')
+    res.status(200).json({ username: 'Flavio' })
 })
 app.get('/user',(req,res)=>{
     let username = Date.now()

@@ -1,46 +1,53 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database/connection');
-const UserModel = require('../database/userModel');
 const { hashPw, compareHash } = require('../util/pwHashing');
-const { createAuthToken,createRefreshToken } = require('../util/jwtUtil');
+const { createAuthToken,createRefreshToken,decodeAuthToken } = require('../util/jwtUtil');
+
+const { ObjectId } = require('mongodb');
+const userSchema = require('../database/userModel');
+const UserModel = new userSchema();
 
 router.get('/all',async (req,res)=>{
     res.status(200).json(await UserModel.find());
 })
 
-router.put('/info',(req,res)=>{
-    res.status(200).send('update info');
+router.get('/info',async (req,res)=>{
+    const decoded = await decodeAuthToken(req.body.auth);
+    if (!decoded){
+        return res.status(404).json({status:false,error:'Invalid Token'});
+    }
+    const userData = await UserModel.find({_id:ObjectId(decoded._id)})
+    return res.status(200).json(userData[0]);
 })
 
 router.post('/signup',async (req,res)=>{
     const newUser = req.body;
     if (!newUser.username || !newUser.email || !newUser.password){
-        res.status(400).json({status:false,error:'Missing required field'})
+        return res.status(400).json({status:false,error:'Missing required field'})
     }
 
-    let existingUsers = await UserModel.find({email:newUser.email}).exec();
+    let existingUsers = await UserModel.find({email:newUser.email});
     if ( existingUsers.length > 0){
-        res.status(400).json({status:false,error:'User already exists in system'})
+        return res.status(400).json({status:false,error:'User already exists in system'})
     }
 
     try {
         newUser.password = hashPw(newUser.password);
-        let insertedData = await new UserModel({
+        let insertedData = await UserModel.create({
             ...newUser,
             created:Date.now(),
             refreshTokenVersion:0,
-            authTokenVersion:0}).save();
+            authTokenVersion:0})
         
         let tokenData = {
             _id:insertedData._id,
-            version:insertedData.authTokenVersion
+            version:0
         }
 
         res.status(200).json({
             status:true,
             auth:createAuthToken(tokenData),
-            refresh:createRefreshToken({...tokenData,version:insertedData.refreshTokenVersion})
+            refresh:createRefreshToken(tokenData)
         });
     }catch {
         res.status(400).json({status:false,error:'Inserting User Failed'})
@@ -53,23 +60,24 @@ router.post('/login',async (req,res)=>{
         req.status(400).json({status:false,error:'missing required fields'})
     }
 
-    const userProfile = await UserModel.findOne({email:loginData.email}).exec()
-    if ( !userProfile){
-        res.status(404).json({status:false,error:'Problems Finding login info'})
+    const existingUsers = await UserModel.find({email:loginData.email});
+    if ( !existingUsers.length){
+        return res.status(404).json({status:false,error:'Problems Finding login info'})
     }else{
-        if ( compareHash(loginData.password,userProfile.password) ){
+        const user = existingUsers[0]
+        if ( compareHash(loginData.password,user.password) ){
             let tokenData = {
-                _id:userProfile._id,
-                version:userProfile.authTokenVersion
+                _id:user._id,
+                version:user.authTokenVersion
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 status:true,
                 auth:createAuthToken(tokenData),
-                refresh:createRefreshToken({...tokenData,version:userProfile.refreshTokenVersion}),
+                refresh:createRefreshToken({...tokenData,version:user.refreshTokenVersion}),
             });
         }else{
-            res.status(403).json({status:false,error:'Incorrect Password'})
+            return res.status(403).json({status:false,error:'Incorrect Password'})
         }
     }
 

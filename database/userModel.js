@@ -1,13 +1,7 @@
-const mongoose = require('mongoose')
+const dbcollection = require('./connection');
 
-const userSchema = new mongoose.Schema({
-    username:String,
-    password:String,
-    email:String,
-    created:Date,
-    refreshTokenVersion:Number,
-    authTokenVersion:Number,
-    isAdmin:Boolean
-});
-
-module.exports = mongoose.model('Users',userSchema)
+module.exports = class userModel extends dbcollection{
+    constructor () {
+        super('Users');
+    }
+  }

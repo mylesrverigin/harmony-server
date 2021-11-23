@@ -12,11 +12,10 @@ router.get('/all',async (req,res)=>{
 })
 
 router.get('/info',async (req,res)=>{
-    const decoded = await decodeAuthToken(req.body.auth);
-    if (!decoded){
-        return res.status(404).json({status:false,error:'Invalid Token'});
+    if (!req['authorization'].auth){
+        return res.status(403).json({status:false,error:'Invalid Auth'})
     }
-    const userData = await UserModel.find({_id:ObjectId(decoded._id)})
+    const userData = await UserModel.find({_id:ObjectId(req['authorization'].user._id)})
     return res.status(200).json(userData[0]);
 })
 
@@ -33,11 +32,11 @@ router.post('/signup',async (req,res)=>{
 
     try {
         newUser.password = hashPw(newUser.password);
-        let insertedData = await UserModel.create({
-            ...newUser,
-            created:Date.now(),
-            refreshTokenVersion:0,
-            authTokenVersion:0})
+        let insertedData = await UserModel.create(newUser)
+        console.log(insertedData);
+        if (insertedData.error){
+            throw insertedData.message;
+        }
         
         let tokenData = {
             _id:insertedData._id,
@@ -49,8 +48,8 @@ router.post('/signup',async (req,res)=>{
             auth:createAuthToken(tokenData),
             refresh:createRefreshToken(tokenData)
         });
-    }catch {
-        res.status(400).json({status:false,error:'Inserting User Failed'})
+    }catch (err) {
+        res.status(400).json({status:false,error:'Inserting User Failed '+err})
     }
 })
 

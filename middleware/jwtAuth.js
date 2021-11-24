@@ -19,7 +19,7 @@ const jwtAuth = async (req,res,next) => {
     if (decoded){
         // attempt to get user
         const userData = await UserModel.find({_id:ObjectId(decoded._id)})
-        if (userData && userData[0].authTokenVersion == decoded.version){
+        if (userData.length && userData[0].authTokenVersion == decoded.version){
             // user is authorized
             req['authorization'] = {
                 user:userData[0],

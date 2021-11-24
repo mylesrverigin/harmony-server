@@ -19,6 +19,22 @@ router.get('/info',async (req,res)=>{
     return res.status(200).json(userData[0]);
 })
 
+router.put('/info', async (req,res)=>{
+    if (!req['authorization'].auth){
+        return res.status(403).json({status:false,error:'Invalid Auth'})
+    }
+    try {
+        const userData = req.body;
+        if ( !userData){
+            throw 'no data sent'
+        }
+        const statuses = await UserModel.update([userData]);
+        return res.status(200).json({status:true,message:statuses})
+    }catch {
+        return res.status(400).json({status:false,error:'update failed'})
+    }
+})
+
 router.post('/signup',async (req,res)=>{
     const newUser = req.body;
     if (!newUser.username || !newUser.email || !newUser.password){

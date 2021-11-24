@@ -1,10 +1,8 @@
-const { MongoClient } = require("mongodb");
+const { MongoClient,ObjectId } = require("mongodb");
 
 class dbConnection {
     constructor (name) {
         this.init(name);
-        this.required = null;
-        this.defaults = null;
         this.fields = null;
     }
 
@@ -33,13 +31,13 @@ class dbConnection {
         if (!this.fields){
             insertedData = data
         }else{
-            this.fields.forEach(field=>{
+            Object.keys(this.fields).forEach(field=>{
                 if (field in data){
                     insertedData[field] = data[field];
-                }else if( this.isFieldRequired(field)){
+                }else if( this.fields[field]['required'] ){
                     // field required, check if default set
-                    let defaultValue = this.getDefault(field)
-                    if ( defaultValue ){
+                    let defaultValue = this.fields[field]['default'];
+                    if ( defaultValue != undefined ){
                         insertedData[field] = defaultValue;
                     }else{
                         // no default return error
@@ -59,21 +57,41 @@ class dbConnection {
         }
         
     }
-
-    isFieldRequired = (field) =>{
-        if (!this.required){
-            return false;
-        }else{
-            return field in this.required;
+    update = async (dataArr) => {
+        let updatedList = [];
+        const correctedData = this.stripFields(dataArr);
+        for (let data of correctedData){
+            console.log(data);
+            let success
+            try{
+                let dataId = data._id
+                if ( !dataId){
+                    throw 'missing Id'
+                }
+                delete data['_id'];
+                success = await this.collection.updateOne({_id:ObjectId(dataId)}, { $set:{ ...data}}, {upsert:true});
+                console.log(success);
+                updatedList.push(`${dataId} updated`)
+            }catch (err){
+                console.log(err)
+                updatedList.push(err);
+            }
         }
+        return updatedList;
     }
 
-    getDefault = (field) => {
-        if (!this.defaults){
-            return null;
-        }else{
-            return this.defaults[field];
-        }
+    stripFields = (arr) => {
+        let strippedDatas = []
+        arr.forEach(data=>{
+            let strippedData = {}
+            Object.keys(data).forEach(key=>{
+                if (key in this.fields){
+                    strippedData[key] = data[key]
+                }
+            })
+            strippedDatas.push(strippedData);
+        })
+        return strippedDatas;
     }
 }
 

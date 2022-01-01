@@ -24,11 +24,14 @@ router.put('/info', async (req,res)=>{
         return res.status(403).json({status:false,error:'Invalid Auth'})
     }
     try {
-        const userData = req.body;
+        let userData = req.body;
         if ( !userData){
             throw 'no data sent'
         }
-        const statuses = await UserModel.update([userData]);
+        if (!Array.isArray(userData)) {
+            userData = [userData]
+        }
+        const statuses = await UserModel.update(userData);
         return res.status(200).json({status:true,message:statuses})
     }catch {
         return res.status(400).json({status:false,error:'update failed'})
@@ -49,7 +52,6 @@ router.post('/signup',async (req,res)=>{
     try {
         newUser.password = hashPw(newUser.password);
         let insertedData = await UserModel.create(newUser)
-        console.log(insertedData);
         if (insertedData.error){
             throw insertedData.message;
         }

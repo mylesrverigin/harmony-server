@@ -17,7 +17,8 @@ class dbConnection {
     }
     
     findAll = async () => {
-        return await this.collection.find({});
+        const cursor = await this.collection.find({});
+        return cursor.toArray();
     }
 
     delete = async (query) => {
@@ -43,7 +44,7 @@ class dbConnection {
                         // no default return error
                         error = {
                             error : true,
-                            message : `Missing field ${field}`
+                            message : `Missing field: '${field}'`
                         };
                         canInsert = false;
                     }
@@ -61,16 +62,15 @@ class dbConnection {
         let updatedList = [];
         const correctedData = this.stripFields(dataArr);
         for (let data of correctedData){
-            console.log(data);
-            let success
+            let success;
             try{
+                // remove Id and pass it in as type Object Id
                 let dataId = data._id
                 if ( !dataId){
                     throw 'missing Id'
                 }
                 delete data['_id'];
                 success = await this.collection.updateOne({_id:ObjectId(dataId)}, { $set:{ ...data}}, {upsert:true});
-                console.log(success);
                 updatedList.push(`${dataId} updated`)
             }catch (err){
                 console.log(err)

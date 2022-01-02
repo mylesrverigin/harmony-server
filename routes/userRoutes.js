@@ -8,15 +8,21 @@ const userSchema = require('../database/userModel');
 const UserModel = new userSchema();
 
 router.get('/all',async (req,res)=>{
-    res.status(200).json(await UserModel.find());
+    return res.status(200).json(await UserModel.find());
 })
 
 router.get('/info',async (req,res)=>{
     if (!req['authorization'].auth){
         return res.status(403).json({status:false,error:'Invalid Auth'})
     }
-    const userData = await UserModel.find({_id:ObjectId(req['authorization'].user._id)})
-    return res.status(200).json(userData[0]);
+    let userData = await UserModel.find({_id:ObjectId(req['authorization'].user._id)});
+    
+    userData = userData[0];
+    delete userData.password;
+    delete userData.refreshTokenVersion;
+    delete userData.authTokenVersion;
+
+    return res.status(200).json(userData);
 })
 
 router.put('/info', async (req,res)=>{
@@ -74,7 +80,7 @@ router.post('/signup',async (req,res)=>{
 router.post('/login',async (req,res)=>{
     const loginData = req.body;
     if (!loginData.password || !loginData.email){
-        req.status(400).json({status:false,error:'missing required fields'})
+        return res.status(400).json({status:false,error:'missing required fields'})
     }
 
     const existingUsers = await UserModel.find({email:loginData.email});

@@ -5,9 +5,15 @@ module.exports = class userModel extends dbcollection{
         super('Users');
         this.fields = {
             _id : {},
-            username : {},
-            email : {},
-            password : {},
+            username : {
+                required: true
+            },
+            email : {
+                required : true
+            },
+            password : {
+                required : true
+            },
             created : {
                 required : true,
                 default : Date.now()
